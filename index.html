@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Libib Barcodes with Template + Save All</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    input, button { font-size: 1.2rem; margin: 0.5rem 0; }
+    #output { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 2rem; }
+    canvas { border: 1px solid #ccc; }
+    .canvas-container { text-align: center; }
+  </style>
+</head>
+<body>
+
+<h1>Bulk Barcodes with Background Template</h1>
+
+<label>Prefix (201 or 202):</label><br>
+<input type="text" id="prefix" value="201" maxlength="3" pattern="\d{3}">
+<br><br>
+
+<label>Start Number:</label><br>
+<input type="number" id="startNumber" min="1">
+<br><br>
+
+<label>End Number:</label><br>
+<input type="number" id="endNumber" min="1">
+<br><br>
+
+<button onclick="generateBulk()">Generate Barcodes</button>
+<button onclick="saveAll()">Save All as ZIP</button>
+
+<!-- Load your background template (hidden) -->
+<img id="background" src="back-stickers.jpg" style="display:none;">
+
+<div id="output"></div>
+
+<script>
+function calculateChecksum(number) {
+  let sum = 0;
+  for (let i = 0; i < number.length; i++) {
+    let digit = parseInt(number[i]);
+    sum += (i % 2 === 0) ? digit : digit * 3;
+  }
+  let mod = sum % 10;
+  return (mod === 0) ? 0 : 10 - mod;
+}
+
+function padNumber(num, size) {
+  let s = num + "";
+  while (s.length < size) s = "0" + s;
+  return s;
+}
+
+function generateBulk() {
+  const prefix = document.getElementById('prefix').value.trim();
+  const start = parseInt(document.getElementById('startNumber').value);
+  const end = parseInt(document.getElementById('endNumber').value);
+  const output = document.getElementById('output');
+  const background = document.getElementById('background');
+
+  output.innerHTML = '';
+
+  if (!/^\d{3}$/.test(prefix)) {
+    alert('Prefix must be exactly 3 digits.');
+    return;
+  }
+  if (isNaN(start) || isNaN(end) || start > end) {
+    alert('Please enter a valid start and end number.');
+    return;
+  }
+
+  // Ensure background is loaded before proceeding
+  function drawLabels() {
+    for (let i = start; i <= end; i++) {
+      let middle = padNumber(i, 9);
+      let base = prefix + middle;
+      let checksum = calculateChecksum(base);
+      let fullBarcode = base + checksum;
+
+      let canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 600;
+      let ctx = canvas.getContext('2d');
+
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+      let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      JsBarcode(svg, fullBarcode, { format: "ean13", width: 2, height: 100 });
+
+      let svgData = new XMLSerializer().serializeToString(svg);
+      let imgSrc = 'data:image/svg+xml;base64,' + btoa(svgData);
+      let barcodeImg = new Image();
+      barcodeImg.src = imgSrc;
+
+      barcodeImg.onload = () => {
+        ctx.drawImage(barcodeImg, 600, 225, 500, 150);
+      };
+
+      let container = document.createElement('div');
+      container.className = 'canvas-container';
+      container.appendChild(canvas);
+      output.appendChild(container);
+
+      // Store barcode value on the canvas element itself for later naming
+      canvas.dataset.barcode = fullBarcode;
+    }
+  }
+
+  if (background.complete) {
+    drawLabels();
+  } else {
+    background.onload = drawLabels;
+  }
+}
+
+function saveAll() {
+  const canvases = document.querySelectorAll('#output canvas');
+  if (canvases.length === 0) {
+    alert("No barcodes to save!");
+    return;
+  }
+
+  let zip = new JSZip();
+  let folder = zip.folder("labels");
+
+  canvases.forEach((canvas, idx) => {
+    let barcodeName = canvas.dataset.barcode || `label-${idx+1}`;
+    let imgData = canvas.toDataURL("image/png").split(",")[1]; // base64 part
+    folder.file(`${barcodeName}.png`, imgData, {base64: true});
+  });
+
+  zip.generateAsync({type:"blob"})
+    .then(function(content) {
+      saveAs(content, "barcode-labels.zip");
+    });
+}
+</script>
+
+</body>
+</html>
