@@ -6,12 +6,38 @@
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
+    body {  padding: 2rem; }
+    *{font-family: 'Gentium Book Plus';}
     input, button { font-size: 1.2rem; margin: 0.5rem 0; }
     #output { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 2rem; }
     canvas { border: 1px solid #ccc; }
     .canvas-container { text-align: center; }
+    button {
+      background-color: #4CAF50; /* Green */
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 1.2rem;
+      margin: 0.5rem 0;
+      cursor: pointer;
+      border-radius: 50px;
+      &:hover {
+        background-color: #45a049; /* Darker green on hover */
+      }
+    }
+    select {
+  font-size: 1.2rem;
+  padding: 0.4rem;
+  margin: 0.5rem 0;
+}
   </style>
 </head>
 <body>
@@ -33,12 +59,19 @@
 <label>End Number:</label><br>
 <input type="number" id="endNumber" min="1">
 <br><br>
+<label>Branch</label>
+<select id="branch">
+  <option value="main">Main</option>
+  <option value="shire">Shire</option>
+</select>
+<br><br>
 
 <button onclick="generateBulk()">Generate Barcodes</button>
 <button onclick="saveAll()">Save All as ZIP</button>
+<button onclick="savePDF()">Save as PDF</button>
 
 <!-- Load your background template (hidden) -->
-<img id="background" src="back-stickers.jpg" style="display:none;">
+<img id="background" style="display:none;">
 
 <div id="output"></div>
 
@@ -68,6 +101,7 @@ function generateBulk() {
   const end = parseInt(document.getElementById('endNumber').value);
   const output = document.getElementById('output');
   const background = document.getElementById('background');
+  background.src = document.getElementById('branch').value === 'shire' ? 'shire.jpg' : 'main.jpg';
   
 
   output.innerHTML = '';
@@ -147,7 +181,7 @@ function saveAll() {
   let folder = zip.folder(filename);
 
   canvases.forEach((canvas, idx) => {
-    let barcodeName = canvas.dataset.barcode || `label-${idx+1}`;
+    let barcodeName = `${idx+1}`;
     let imgData = canvas.toDataURL("image/png").split(",")[1]; // base64 part
     folder.file(`${barcodeName}.png`, imgData, {base64: true});
   });
@@ -162,6 +196,60 @@ function saveAll() {
       
       saveAs(content, filename);
     });
+  
+}
+async function savePDF() {
+  if (allCanvases.length === 0) {
+    alert("No barcodes to save!");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "letter"
+  });
+
+  const labelWidth = 101.6;   // 4 inches in mm
+  const labelHeight = 50.8;   // 2 inches in mm
+  const marginX = 3.97;       // 0.15625 inches in mm
+  const marginY = 12.7;       // 0.5 inches in mm
+  const horizontalPitch = 101.6; // Distance between columns
+  const verticalPitch = 50.8;    // Distance between rows
+
+  let x = marginX;
+  let y = marginY;
+  let col = 0;
+  let row = 0;
+  let labelsPerPage = 10;
+
+  for (let i = 0; i < allCanvases.length; i++) {
+    let canvas = allCanvases[i];
+    let imgData = canvas.toDataURL("image/png");
+
+    doc.addImage(imgData, 'PNG', x, y, labelWidth, labelHeight);
+
+    col++;
+    if (col >= 2) {
+      col = 0;
+      row++;
+      x = marginX;
+      y = marginY + row * verticalPitch;
+    } else {
+      x += horizontalPitch;
+    }
+
+    if ((i + 1) % labelsPerPage === 0 && i !== allCanvases.length - 1) {
+      doc.addPage();
+      x = marginX;
+      y = marginY;
+      col = 0;
+      row = 0;
+    }
+  }
+
+  doc.save("barcodes-labels.pdf");
 }
 </script>
 
