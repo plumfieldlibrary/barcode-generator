@@ -17,10 +17,13 @@
 <body>
 
 <h1>Plumfield Library Barcode Generator</h1>
-  <p>This generator creates barcodes for our library stickers using the Libib coding system (i.e. 201 + number + checksum).</p>
-
-<label>Prefix (201 or 202):</label><br>
-<input type="text" id="prefix" value="201" maxlength="3" pattern="\d{3}">
+  <p>This generator creates barcodes for our library stickers using the Libib coding system.</p>
+<ul>
+  <li>Main (Main collection): 111</li>
+  <li>Shire (Main collection): 121</li>
+</ul>
+<label>Prefix:</label><br>
+<input type="text" id="prefix" value="111" maxlength="3" pattern="\d{3}">
 <br><br>
 
 <label>Start Number:</label><br>
