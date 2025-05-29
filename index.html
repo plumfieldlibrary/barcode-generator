@@ -38,20 +38,33 @@
   padding: 0.4rem;
   margin: 0.5rem 0;
 }
+details{
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+}
   </style>
 </head>
 <body>
 
 <h1>Plumfield Library Barcode Generator</h1>
   <p>This generator creates barcodes for our library stickers using the Libib coding system.</p>
-<ul>
+
+<details>
+  <summary>Prefix (advanced)</summary>
+  <ul>
   <li>Main (Main collection): 111</li>
   <li>Shire (Main collection): 121</li>
 </ul>
 <label>Prefix:</label><br>
 <input type="text" id="prefix" value="111" maxlength="3" pattern="\d{3}">
 <br><br>
-
+  <p>Enter a 3-digit prefix for the barcode. The default is 111 for Main and 121 for Shire.</p>
+  <p>NOTE: only change this if you know what you are doing!!!</p>
+</details>
 <label>Start Number:</label><br>
 <input type="number" id="startNumber" min="1">
 <br><br>
@@ -65,6 +78,7 @@
   <option value="shire">Shire</option>
 </select>
 <br><br>
+
 
 <button onclick="generateBulk()">Generate Barcodes</button>
 <button onclick="saveAll()">Save All as ZIP</button>
@@ -251,6 +265,10 @@ async function savePDF() {
 
   doc.save("barcodes-labels.pdf");
 }
+// Set branch select listener to update prefix automatically
+document.getElementById('branch').addEventListener('change', function () {
+  document.getElementById('prefix').value = this.value === 'shire' ? '121' : '111';
+});
 </script>
 
 </body>
