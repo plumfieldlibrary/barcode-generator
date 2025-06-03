@@ -30,7 +30,7 @@
       cursor: pointer;
       border-radius: 50px;
       &:hover {
-        background-color: #45a049; /* Darker green on hover */
+        background-color: black; /* Darker green on hover */
       }
     }
     select {
@@ -45,6 +45,37 @@ details{
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 1rem;
+}
+#progressContainer {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+#progressBar {
+  width: 100%;
+  height: 20px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 50px;
+  overflow: hidden;
+  background-color: #eee;
+  border: 1px solid #ccc;
+}
+
+#progressBar::-webkit-progress-bar {
+  background-color: #eee;
+  border-radius: 50px;
+}
+
+#progressBar::-webkit-progress-value {
+  background-color: #4CAF50;
+  border-radius: 50px;
+}
+
+#progressBar::-moz-progress-bar {
+  background-color: #4CAF50;
+  border-radius: 50px;
 }
   </style>
 </head>
@@ -83,6 +114,10 @@ details{
 <button onclick="generateBulk()">Generate Barcodes</button>
 <button onclick="saveAll()">Save All as ZIP</button>
 <button onclick="savePDF()">Save as PDF</button>
+<div id="progressContainer" style="display: none;">
+  <label id="progressLabel" for="progressBar">Processing...</label>
+  <progress id="progressBar" value="0" max="100"></progress>
+</div>
 
 <!-- Load your background template (hidden) -->
 <img id="background" style="display:none;">
@@ -90,6 +125,26 @@ details{
 <div id="output"></div>
 
 <script>
+  function showProgress(labelText, maxValue) {
+  const progressBar = document.getElementById('progressBar');
+  const progressLabel = document.getElementById('progressLabel');
+  const progressContainer = document.getElementById('progressContainer');
+
+  progressBar.value = 0;
+  progressBar.max = maxValue;
+  progressLabel.innerText = labelText;
+  progressContainer.style.display = 'block';
+}
+
+function updateProgress(value) {
+  const progressBar = document.getElementById('progressBar');
+  progressBar.value = value;
+}
+
+function hideProgress() {
+  const progressContainer = document.getElementById('progressContainer');
+  progressContainer.style.display = 'none';
+}
 let allCanvases = [];
 
 function calculateChecksum(number) {
@@ -185,6 +240,8 @@ function saveAll() {
     alert("No barcodes to save!");
     return;
   }
+  showProgress("Creating ZIP...", canvases.length);
+
 
   let zip = new JSZip();
   let startText = document.getElementById('startNumber').value;
@@ -198,6 +255,8 @@ function saveAll() {
     let barcodeName = `${idx+1}`;
     let imgData = canvas.toDataURL("image/png").split(",")[1]; // base64 part
     folder.file(`${barcodeName}.png`, imgData, {base64: true});
+    updateProgress(idx + 1);
+
   });
 
   zip.generateAsync({type:"blob"})
@@ -217,6 +276,8 @@ async function savePDF() {
     alert("No barcodes to save!");
     return;
   }
+    showProgress("Generating PDF...", allCanvases.length);
+
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
@@ -261,6 +322,7 @@ async function savePDF() {
       col = 0;
       row = 0;
     }
+    updateProgress(i + 1);
   }
 
   doc.save("barcodes-labels.pdf");
