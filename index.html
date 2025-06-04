@@ -46,37 +46,26 @@ details{
   border-radius: 5px;
   font-size: 1rem;
 }
-#progressContainer {
-  margin-top: 1rem;
-  font-size: 1.1rem;
-  color: #333;
+
+
+#spinner {
+  display: none;
+  margin: 1rem 0;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 10000;
 }
 
-#progressBar {
-  width: 100%;
-  height: 20px;
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 50px;
-  overflow: hidden;
-  background-color: #eee;
-  border: 1px solid #ccc;
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-#progressBar::-webkit-progress-bar {
-  background-color: #eee;
-  border-radius: 50px;
-}
 
-#progressBar::-webkit-progress-value {
-  background-color: #4CAF50;
-  border-radius: 50px;
-}
-
-#progressBar::-moz-progress-bar {
-  background-color: #4CAF50;
-  border-radius: 50px;
-}
   </style>
 </head>
 <body>
@@ -114,10 +103,10 @@ details{
 <button onclick="generateBulk()">Generate Barcodes</button>
 <button onclick="saveAll()">Save All as ZIP</button>
 <button onclick="savePDF()">Save as PDF</button>
-<div id="progressContainer" style="display: none;">
-  <label id="progressLabel" for="progressBar">Processing...</label>
-  <progress id="progressBar" value="0" max="100"></progress>
-</div>
+
+<div id="spinner" role="status" aria-label="Loading"></div>
+
+
 
 <!-- Load your background template (hidden) -->
 <img id="background" style="display:none;">
@@ -125,27 +114,8 @@ details{
 <div id="output"></div>
 
 <script>
-  function showProgress(labelText, maxValue) {
-  const progressBar = document.getElementById('progressBar');
-  const progressLabel = document.getElementById('progressLabel');
-  const progressContainer = document.getElementById('progressContainer');
-
-  progressBar.value = 0;
-  progressBar.max = maxValue;
-  progressLabel.innerText = labelText;
-  progressContainer.style.display = 'block';
-}
-
-function updateProgress(value) {
-  const progressBar = document.getElementById('progressBar');
-  progressBar.value = value;
-}
-
-function hideProgress() {
-  const progressContainer = document.getElementById('progressContainer');
-  progressContainer.style.display = 'none';
-}
-let allCanvases = [];
+ 
+  let allCanvases = [];
 
 function calculateChecksum(number) {
   let sum = 0;
@@ -235,97 +205,92 @@ function generateBulk() {
 }
 
 function saveAll() {
-  const canvases = allCanvases;
-  if (canvases.length === 0) {
-    alert("No barcodes to save!");
-    return;
-  }
-  showProgress("Creating ZIP...", canvases.length);
+  document.getElementById('spinner').style.display = "block";
+  setTimeout(() => {
+    const canvases = allCanvases;
+    if (canvases.length === 0) {
+      alert("No barcodes to save!");
+      document.getElementById('spinner').style.display = "none";
+      return;
+    }
 
+    let zip = new JSZip();
+    let startText = document.getElementById('startNumber').value;
+    let endText = document.getElementById('endNumber').value;
+    let filename = `barcodes-${startText}-${endText}`;
+    let folder = zip.folder(filename);
 
-  let zip = new JSZip();
-  let startText = document.getElementById('startNumber').value;
-  let endText = document.getElementById('endNumber').value;
-      // const startText = document.getElementById('startText').value;
-      // const endText = document.getElementById('endText').value;
-  let filename = `barcodes-${startText}-${endText}`;
-  let folder = zip.folder(filename);
-
-  canvases.forEach((canvas, idx) => {
-    let barcodeName = `${idx+1}`;
-    let imgData = canvas.toDataURL("image/png").split(",")[1]; // base64 part
-    folder.file(`${barcodeName}.png`, imgData, {base64: true});
-    updateProgress(idx + 1);
-
-  });
-
-  zip.generateAsync({type:"blob"})
-    .then(function(content) {
-      let startText = document.getElementById('startNumber').value;
-      let endText = document.getElementById('endNumber').value;
-      // const startText = document.getElementById('startText').value;
-      // const endText = document.getElementById('endText').value;
-      let filename = `barcodes-${startText}-${endText}.zip`;
-      
-      saveAs(content, filename);
+    canvases.forEach((canvas, idx) => {
+      let barcodeName = `${idx+1}`;
+      let imgData = canvas.toDataURL("image/png").split(",")[1];
+      folder.file(`${barcodeName}.png`, imgData, {base64: true});
     });
-  
+
+    zip.generateAsync({type:"blob"})
+      .then(function(content) {
+        saveAs(content, `${filename}.zip`);
+      })
+      .finally(function() {
+        document.getElementById('spinner').style.display = "none";
+      });
+  }, 50);
 }
 async function savePDF() {
+    document.getElementById('spinner').style.display = "block";
   if (allCanvases.length === 0) {
     alert("No barcodes to save!");
     return;
   }
-    showProgress("Generating PDF...", allCanvases.length);
+  setTimeout(() => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "letter"
+    });
 
+    const labelWidth = 101.6;   // 4 inches in mm
+    const labelHeight = 50.8;   // 2 inches in mm
+    const marginX = 3.97;       // 0.15625 inches in mm
+    const marginY = 12.7;       // 0.5 inches in mm
+    const horizontalPitch = 101.6; // Distance between columns
+    const verticalPitch = 50.8;    // Distance between rows
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "letter"
-  });
+    let x = marginX;
+    let y = marginY;
+    let col = 0;
+    let row = 0;
+    let labelsPerPage = 10;
 
-  const labelWidth = 101.6;   // 4 inches in mm
-  const labelHeight = 50.8;   // 2 inches in mm
-  const marginX = 3.97;       // 0.15625 inches in mm
-  const marginY = 12.7;       // 0.5 inches in mm
-  const horizontalPitch = 101.6; // Distance between columns
-  const verticalPitch = 50.8;    // Distance between rows
+    for (let i = 0; i < allCanvases.length; i++) {
+      let canvas = allCanvases[i];
+      let imgData = canvas.toDataURL("image/png");
 
-  let x = marginX;
-  let y = marginY;
-  let col = 0;
-  let row = 0;
-  let labelsPerPage = 10;
+      doc.addImage(imgData, 'PNG', x, y, labelWidth, labelHeight);
 
-  for (let i = 0; i < allCanvases.length; i++) {
-    let canvas = allCanvases[i];
-    let imgData = canvas.toDataURL("image/png");
+      col++;
+      if (col >= 2) {
+        col = 0;
+        row++;
+        x = marginX;
+        y = marginY + row * verticalPitch;
+      } else {
+        x += horizontalPitch;
+      }
 
-    doc.addImage(imgData, 'PNG', x, y, labelWidth, labelHeight);
-
-    col++;
-    if (col >= 2) {
-      col = 0;
-      row++;
-      x = marginX;
-      y = marginY + row * verticalPitch;
-    } else {
-      x += horizontalPitch;
+      if ((i + 1) % labelsPerPage === 0 && i !== allCanvases.length - 1) {
+        doc.addPage();
+        x = marginX;
+        y = marginY;
+        col = 0;
+        row = 0;
+      }
+    
     }
 
-    if ((i + 1) % labelsPerPage === 0 && i !== allCanvases.length - 1) {
-      doc.addPage();
-      x = marginX;
-      y = marginY;
-      col = 0;
-      row = 0;
-    }
-    updateProgress(i + 1);
-  }
-
-  doc.save("barcodes-labels.pdf");
+    doc.save("barcodes-labels.pdf");
+    document.getElementById('spinner').style.display = "none";
+  }, 50);
 }
 // Set branch select listener to update prefix automatically
 document.getElementById('branch').addEventListener('change', function () {
