@@ -72,6 +72,7 @@ details{
 
 <h1>Plumfield Library Barcode Generator</h1>
   <p>This generator creates barcodes for our library stickers using the Libib coding system.</p>
+  <p><span>NOTE: Only generate 100 barcodes at a time</span></p>
 
 <details>
   <summary>Prefix (advanced)</summary>
@@ -134,6 +135,12 @@ function padNumber(num, size) {
 }
 
 function generateBulk() {
+  let startNumber = document.getElementById('startNumber').value;
+  let endNumber = document.getElementById('endNumber').value;
+  if (endNumber - startNumber > 100) {
+    alert("Please generate no more than 100 barcodes at a time.");
+    return;
+  }
   allCanvases = [];
   const prefix = document.getElementById('prefix').value.trim();
   const start = parseInt(document.getElementById('startNumber').value);
@@ -288,6 +295,7 @@ async function savePDF() {
     
     }
 
+    console.log('PDF page count:', doc.internal.getNumberOfPages());
     doc.save("barcodes-labels.pdf");
     document.getElementById('spinner').style.display = "none";
   }, 50);
