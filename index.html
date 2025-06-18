@@ -237,8 +237,10 @@ function saveAll() {
       .then(function(content) {
         saveAs(content, `${filename}.zip`);
       })
-      .finally(function() {
+      .then(function() {
         document.getElementById('spinner').style.display = "none";
+      }).finally(() =>{
+        location.reload();
       });
   }, 50);
 }
@@ -298,6 +300,7 @@ async function savePDF() {
     console.log('PDF page count:', doc.internal.getNumberOfPages());
     doc.save("barcodes-labels.pdf");
     document.getElementById('spinner').style.display = "none";
+    location.reload();
   }, 50);
 }
 // Set branch select listener to update prefix automatically
