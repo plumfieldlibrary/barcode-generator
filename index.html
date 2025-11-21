@@ -79,6 +79,9 @@ details{
   <ul>
   <li>Main (Main collection): 111</li>
   <li>Shire (Main collection): 121</li>
+  <li>Little Way (Main collection): 131</li>
+  <li>Maternoski (Family collection): 122</li>
+  <li>Keane (Family collection): 132</li>
 </ul>
 <label>Prefix:</label><br>
 <input type="text" id="prefix" value="111" maxlength="3" pattern="\d{3}">
@@ -98,6 +101,8 @@ details{
   <option value="main">Main</option>
   <option value="shire">Shire</option>
   <option value="little_way">Little Way</option>
+  <option value="maternoski">Maternoski</option>
+  <option value="keane">Keane</option>
 </select>
 <br><br>
 
@@ -151,7 +156,9 @@ function generateBulk() {
   const branch_jpg = {
     "shire": "shire.jpg",
     "main": "main.jpg",
-    "little_way": "little_way.jpg"
+    "little_way": "little_way.jpg",
+    "maternoski": "maternoski.jpg",
+    "keane": "keane.jpg"
   }
   background.src = branch_jpg[document.getElementById('branch').value] || 'main.jpg';
   
@@ -314,7 +321,9 @@ document.getElementById('branch').addEventListener('change', function () {
 const prefix = {
   "shire": "121",
   "main": "111",
-  "little_way": "131"
+  "little_way": "131",
+  "maternoski": "122",
+  "keane": "132"
 }
   document.getElementById('prefix').value = prefix[this.value] || '111';
 });
