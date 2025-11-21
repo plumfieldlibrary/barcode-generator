@@ -97,6 +97,7 @@ details{
 <select id="branch">
   <option value="main">Main</option>
   <option value="shire">Shire</option>
+  <option value="little_way">Little Way</option>
 </select>
 <br><br>
 
@@ -147,7 +148,12 @@ function generateBulk() {
   const end = parseInt(document.getElementById('endNumber').value);
   const output = document.getElementById('output');
   const background = document.getElementById('background');
-  background.src = document.getElementById('branch').value === 'shire' ? 'shire.jpg' : 'main.jpg';
+  const branch_jpg = {
+    "shire": "shire.jpg",
+    "main": "main.jpg",
+    "little_way": "little_way.jpg"
+  }
+  background.src = branch_jpg[document.getElementById('branch').value] || 'main.jpg';
   
 
   output.innerHTML = '';
@@ -305,7 +311,12 @@ async function savePDF() {
 }
 // Set branch select listener to update prefix automatically
 document.getElementById('branch').addEventListener('change', function () {
-  document.getElementById('prefix').value = this.value === 'shire' ? '121' : '111';
+const prefix = {
+  "shire": "121",
+  "main": "111",
+  "little_way": "131"
+}
+  document.getElementById('prefix').value = prefix[this.value] || '111';
 });
 </script>
 
